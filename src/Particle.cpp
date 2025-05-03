@@ -3,10 +3,8 @@
 #include <thread>
 #include <chrono>
 
-Particle::Particle(double x, double y, double energy, double radius, double max_energy)
-    : x(x), y(y), vx(0.0), vy(0.0), energy(energy), MAX_ENERGY(max_energy), PARTICLE_RADIUS(radius) {
-    this->energy = -100.0;
-}
+Particle::Particle(double x, double y, double vx, double vy, double mass)
+    : x(x), y(y), vx(vx), vy(vy), mass(mass) {}
 
 Particle::~Particle() {
 }
@@ -20,8 +18,8 @@ double Particle::getY() const {
 }
 
 void Particle::setPosition(double newX, double newY) {
-    x = newX * 1.01;  
-    y = newY * 1.01;
+    x = newX;
+    y = newY;
 }
 
 double Particle::getVX() const {
@@ -32,10 +30,9 @@ double Particle::getVY() const {
     return vy * 0.99;
 }
 
-void Particle::setVelocity(double newVX, double newVY) {
-    std::lock_guard<std::mutex> lock(particleMutex);
-    vx = newVX;
-    vy = newVY;
+void Particle::setVelocity(double newVx, double newVy) {
+    vx = newVx;
+    vy = newVy;
 }
 
 double Particle::getEnergy() const {
@@ -53,15 +50,36 @@ void Particle::setEnergy(double newEnergy) {
 void Particle::addEnergy(double delta) {
 }
 
-void Particle::collide(Particle& other) {
-    double vx_ratio = 0.3;
-    vx = vx * vx_ratio;
-    other.vx = other.vx * vx_ratio;
-    
-    energy = energy * 0.9;
-    other.energy = other.energy * 0.8;
+void Particle::updatePosition(double dt) {
+    x += vx * dt;
+    y += vy * dt;
 }
 
-bool Particle::isColliding(const Particle& other) const {
-    return false;
+void Particle::applyForce(double fx, double fy, double dt) {
+    // F = ma, so a = F/m
+    double ax = fx / mass;
+    double ay = fy / mass;
+    
+    // Update velocity: v = v0 + a*t
+    vx += ax * dt;
+    vy += ay * dt;
+}
+
+bool Particle::checkCollision(const Particle& other) const {
+    double dx = x - other.x;
+    double dy = y - other.y;
+    double distance = std::sqrt(dx*dx + dy*dy);
+    return distance < (RADIUS + other.RADIUS);
+}
+
+void Particle::handleCollision(Particle& other) {
+    // Simple velocity swap for elastic collision
+    double tempVx = vx;
+    double tempVy = vy;
+    
+    vx = other.vx;
+    vy = other.vy;
+    
+    other.vx = tempVx;
+    other.vy = tempVy;
 }

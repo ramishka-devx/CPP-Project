@@ -1,59 +1,39 @@
 cmake_minimum_required(VERSION 3.10)
-project(QuantumMeltdownSimulator)
+project(ParticleSimulation VERSION 1.0)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-# Copy the config.json file to the build directory
-# CMAKE_CURRENT_SOURCE_DIR = Project Root Directory (where this CMakeLists.txt is)
-# CMAKE_CURRENT_BINARY_DIR = Build Directory
-configure_file(
-  ${CMAKE_CURRENT_SOURCE_DIR}/config.json
-  ${CMAKE_CURRENT_BINARY_DIR}/config.json
-  COPYONLY
-)
-
-# Enable OpenMP
-find_package(OpenMP REQUIRED)
-
-# Add External Dependencies using FetchContent
-include(FetchContent)
-
-# --- Google Test ---
-FetchContent_Declare(
-  googletest
-  GIT_REPOSITORY https://github.com/google/googletest.git
-  GIT_TAG release-1.12.1
-)
-
-# --- nlohmann/json ---
-FetchContent_Declare(
-  json
-  GIT_REPOSITORY https://github.com/nlohmann/json.git
-  GIT_TAG v3.11.2 # Use a specific version
-)
-
-# Make dependencies available
-FetchContent_MakeAvailable(googletest)
-FetchContent_MakeAvailable(json)
+# Find required packages
+find_package(nlohmann_json REQUIRED)
 
 # Add source files
-add_library(quantum_simulator
+set(SOURCES
+    src/main.cpp
     src/Particle.cpp
-    src/Simulation.cpp
     src/ContainmentField.cpp
+    src/Simulation.cpp
     src/ThreadManager.cpp
+    src/Config.cpp
 )
 
-# Add include directories
-target_include_directories(quantum_simulator PUBLIC
-   ${CMAKE_CURRENT_SOURCE_DIR}/include
-   ${json_SOURCE_DIR}/include
+# Add header files
+set(HEADERS
+    include/Particle.h
+    include/ContainmentField.h
+    include/Simulation.h
+    include/ThreadManager.h
+    include/Config.h
 )
 
-# Link OpenMP
-target_link_libraries(quantum_simulator PUBLIC OpenMP::OpenMP_CXX)
+# Create executable
+add_executable(quantum_simulator_app ${SOURCES} ${HEADERS})
 
-# Add executable
-add_executable(quantum_simulator_app src/main.cpp)
-target_link_libraries(quantum_simulator_app PRIVATE quantum_simulator)
+# Include directories
+target_include_directories(quantum_simulator_app PRIVATE include)
+
+# Link libraries
+target_link_libraries(quantum_simulator_app PRIVATE nlohmann_json::nlohmann_json)
+
+# Copy config file to build directory
+configure_file(config.json ${CMAKE_CURRENT_BINARY_DIR}/config.json COPYONLY)

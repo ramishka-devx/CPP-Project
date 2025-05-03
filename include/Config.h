@@ -8,26 +8,47 @@
 
 using json = nlohmann::json;
 
-struct Config {
-    size_t num_particles = 500;
-    double field_size = 10.0;
-    size_t initial_threads = 4;
-    double time_step = 0.01;
-    unsigned int random_seed = 0;
+class Config {
+public:
+    Config(const std::string& configPath);
+    
+    // Simulation parameters
+    double getFieldSize() const { return field_size; }
+    double getFieldStrength() const { return initial_strength; }
+    size_t getNumParticles() const { return num_particles; }
+    double getTimeStep() const { return time_step; }
+    size_t getNumSteps() const { return field_grid_size; }
+    
+    size_t getInitialThreads() const { return initial_threads; }
+    double getInitialEnergy() const { return initial_energy; }
+    double getMaxEnergy() const { return max_energy; }
+    double getParticleRadius() const { return particle_radius; }
+    double getInitialDecayRate() const { return initial_decay_rate; }
+    double getTargetFPS() const { return target_fps; }
+    int getGridWidth() const { return grid_width; }
+    int getGridHeight() const { return grid_height; }
+    const std::map<int, char>& getDensityMap() const { return density_map; }
+    int getMaxDensityLevel() const { return max_density_level; }
 
-    double initial_energy = 100.0;
-    double max_energy = 1000.0;
-    double particle_radius = 1.0;
+private:
+    double field_size;
+    double field_strength;
+    size_t num_particles;
+    double time_step;
+    size_t num_steps;
+    
+    size_t initial_threads;
+    double initial_energy;
+    double max_energy;
+    double particle_radius;
+    double initial_decay_rate;
+    size_t field_grid_size;
 
-    double initial_strength = 1.0;
-    double initial_decay_rate = 0.1;
-    size_t field_grid_size = 100;
-
-    double target_fps = 30.0;
-    int grid_width = 80;
-    int grid_height = 24;
-    std::map<int, char> density_map = {
-        {1, '.'}, {2, 'o'}, {3, 'O'}, {4, '*'}, {5, '#'}
-    };
-    int max_density_level = 5;
+    double target_fps;
+    int grid_width;
+    int grid_height;
+    std::map<int, char> density_map;
+    int max_density_level;
+    
+    void loadFromFile(const std::string& configPath);
 }; 

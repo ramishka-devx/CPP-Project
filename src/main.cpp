@@ -121,54 +121,35 @@ void renderASCII(const std::vector<std::unique_ptr<Particle>>& particles, double
     std::cout << std::flush;
 }
 
-int main() {
+int main(int argc, char* argv[]) {
     try {
-        const std::string configFilename = "config.json";
-        Config config = loadConfig(configFilename);
-        std::cout << "Configuration loaded from " << configFilename << std::endl;
-
-        Simulation simulation(config);
-
-        simulation.start();
-
-        const double FRAME_TIME = 1.0 / config.target_fps;
-
-        while (simulation.getParticleCount() > 0) {
-            auto frameStart = std::chrono::high_resolution_clock::now();
-
-            simulation.step();
-
-            renderASCII(simulation.getParticles(), config.field_size, config);
-
-            auto frameEnd = std::chrono::high_resolution_clock::now();
-            auto frameDuration = std::chrono::duration<double>(frameEnd - frameStart).count();
-
-            if (frameDuration < FRAME_TIME) {
-                std::this_thread::sleep_for(
-                    std::chrono::duration<double>(FRAME_TIME - frameDuration)
-                );
-            }
-
-            static int frameCount = 0;
-             if (++frameCount % 30 == 0) {
-                 auto now = std::chrono::high_resolution_clock::now();
-                 static auto lastStatTime = now;
-                 auto elapsed = std::chrono::duration<double>(now - lastStatTime).count();
-                 double actualFps = (elapsed > 1e-6) ? (30.0 / elapsed) : 0.0;
-                 lastStatTime = now;
-
-                std::cout << "\nParticles: " << simulation.getParticleCount()
-                          << " | Energy: " << simulation.getTotalEnergy()
-                          << " | FPS: " << actualFps << std::endl;
-            }
-        }
-
-        simulation.stop();
-        std::cout << "Simulation ended. All particles escaped.\n";
-
+        // Load configuration
+        Config config("config.json");
+        
+        // Create and initialize simulation
+        Simulation simulation(
+            config.getFieldSize(),
+            config.getFieldStrength(),
+            config.getNumParticles()
+        );
+        
+        simulation.initialize();
+        
+        // Run simulation
+        std::cout << "Starting simulation..." << std::endl;
+        auto startTime = std::chrono::high_resolution_clock::now();
+        
+        simulation.run(config.getNumSteps(), config.getTimeStep());
+        
+        auto endTime = std::chrono::high_resolution_clock::now();
+        auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(endTime - startTime);
+        
+        std::cout << "\nSimulation completed in " << duration.count() << " ms" << std::endl;
+        
     } catch (const std::exception& e) {
         std::cerr << "Error: " << e.what() << std::endl;
         return 1;
     }
+    
     return 0;
 } 

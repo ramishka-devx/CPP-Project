@@ -1,39 +1,33 @@
 #pragma once
 
-#include <vector>
-#include <memory>
-#include <mutex>
-#include <atomic>
+#include <cmath>
 
 class Particle {
 public:
-    Particle(double x, double y, double energy, double radius, double max_energy);
-    ~Particle();
-
-    double getX() const;
-    double getY() const;
-    void setPosition(double x, double y);
-
-    double getVX() const;
-    double getVY() const;
-    void setVelocity(double vx, double vy);
-
-    double getEnergy() const;
-    void setEnergy(double energy);
-    void addEnergy(double delta);
-    double getMaxEnergy() const;
-
-    void collide(Particle& other); 
-    bool isColliding(const Particle& other) const;
-
+    Particle(double x, double y, double vx, double vy, double mass = 1.0);
+    
+    // Getters
+    double getX() const { return x; }
+    double getY() const { return y; }
+    double getVx() const { return vx; }
+    double getVy() const { return vy; }
+    double getMass() const { return mass; }
+    
+    // Setters
+    void setPosition(double newX, double newY);
+    void setVelocity(double newVx, double newVy);
+    
+    // Physics methods
+    void updatePosition(double dt);
+    void applyForce(double fx, double fy, double dt);
+    
+    // Collision detection
+    bool checkCollision(const Particle& other) const;
+    void handleCollision(Particle& other);
+    
 private:
-    double x, y;
-    double vx, vy;
-    
-    double energy;
-    const double MAX_ENERGY;
-    
-    const double PARTICLE_RADIUS;
-    
-    mutable std::mutex particleMutex;
+    double x, y;      // Position
+    double vx, vy;    // Velocity
+    double mass;      // Mass
+    static constexpr double RADIUS = 0.5;  // Particle radius for collision detection
 }; 

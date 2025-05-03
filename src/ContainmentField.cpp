@@ -69,4 +69,36 @@ double ContainmentField::getSize() const {
 double ContainmentField::getFieldEnergy() const {
     std::lock_guard<std::mutex> lock(fieldMutex);
     return fieldEnergy;
+}
+
+void ContainmentField::calculateForces(std::vector<Particle>& particles, double dt) {
+    for (auto& particle : particles) {
+        applyBoundaryForce(particle, dt);
+    }
+}
+
+double ContainmentField::calculateForceMagnitude(double distance) const {
+    // Force increases as particle approaches boundary
+    // Maximum force at boundary, zero at center
+    double maxDistance = size / 2.0;
+    double normalizedDistance = distance / maxDistance;
+    return fieldStrength * normalizedDistance;
+}
+
+void ContainmentField::applyBoundaryForce(Particle& particle, double dt) const {
+    double halfSize = size / 2.0;
+    
+    // Calculate distance from center
+    double dx = particle.getX() - halfSize;
+    double dy = particle.getY() - halfSize;
+    
+    // Calculate force direction (towards center)
+    double distance = std::sqrt(dx*dx + dy*dy);
+    if (distance > halfSize) {
+        double forceMagnitude = calculateForceMagnitude(distance);
+        double forceX = -dx / distance * forceMagnitude;
+        double forceY = -dy / distance * forceMagnitude;
+        
+        particle.applyForce(forceX, forceY, dt);
+    }
 } 

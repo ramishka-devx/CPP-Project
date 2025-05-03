@@ -3,7 +3,9 @@
 #include <algorithm>
 #include <random>
 #include <thread>
-#include <iostream> 
+#include <iostream>
+#include <iomanip>
+
 Simulation::Simulation(const Config& config)
     : fieldSize(config.field_size),
       timeStep(config.time_step),
@@ -166,4 +168,78 @@ void Simulation::workerThread(size_t threadId) {
             sum += i;
         }
     }
+}
+
+void Simulation::run(size_t numSteps, double dt) {
+    for (size_t step = 0; step < numSteps; ++step) {
+        // Update particle positions
+        updateParticles(dt);
+        
+        // Handle collisions
+        handleCollisions();
+        
+        // Apply containment field forces
+        field->calculateForces(particles, dt);
+        
+        // Render the current state
+        render();
+    }
+}
+
+void Simulation::updateParticles(double dt) {
+    // Parallelize particle updates using ThreadManager
+    size_t particlesPerThread = particles.size() / threadManager.getThreadCount();
+    size_t remainingParticles = particles.size() % threadManager.getThreadCount();
+    
+    size_t startIndex = 0;
+    for (size_t i = 0; i < threadManager.getThreadCount(); ++i) {
+        size_t endIndex = startIndex + particlesPerThread + (i < remainingParticles ? 1 : 0);
+        
+        threadManager.submitTask([this, startIndex, endIndex, dt]() {
+            for (size_t j = startIndex; j < endIndex; ++j) {
+                particles[j]->updatePosition(dt);
+            }
+        });
+        
+        startIndex = endIndex;
+    }
+    
+    threadManager.waitForCompletion();
+}
+
+void Simulation::render() const {
+    const int gridWidth = 80;
+    const int gridHeight = 24;
+    std::vector<std::vector<int>> densityGrid(gridHeight, std::vector<int>(gridWidth, 0));
+    
+    // Calculate particle density in each grid cell
+    double cellWidth = field->getSize() / gridWidth;
+    double cellHeight = field->getSize() / gridHeight;
+    
+    for (const auto& particle : particles) {
+        int gridX = static_cast<int>(particle->getX() / cellWidth);
+        int gridY = static_cast<int>(particle->getY() / cellHeight);
+        
+        if (gridX >= 0 && gridX < gridWidth && gridY >= 0 && gridY < gridHeight) {
+            densityGrid[gridY][gridX]++;
+        }
+    }
+    
+    // Clear screen and render
+    std::cout << "\033[2J\033[H";  // Clear screen and move cursor to top-left
+    
+    for (const auto& row : densityGrid) {
+        for (int density : row) {
+            char symbol = '.';
+            if (density > 0) {
+                if (density > 4) symbol = '#';
+                else if (density > 3) symbol = '*';
+                else if (density > 2) symbol = 'O';
+                else if (density > 1) symbol = 'o';
+            }
+            std::cout << symbol;
+        }
+        std::cout << '\n';
+    }
+    std::cout << std::flush;
 } 

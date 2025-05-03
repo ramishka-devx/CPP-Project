@@ -2,44 +2,36 @@
 
 #include <vector>
 #include <thread>
+#include <functional>
 #include <mutex>
 #include <condition_variable>
-#include <atomic>
-#include <functional>
 #include <queue>
+#include <atomic>
 
 class ThreadManager {
 public:
-    ThreadManager(size_t numThreads);
+    ThreadManager(size_t numThreads = std::thread::hardware_concurrency());
     ~ThreadManager();
 
-    void start();
-    void stop();
-    void waitForCompletion(); 
+    // Disable copying
+    ThreadManager(const ThreadManager&) = delete;
+    ThreadManager& operator=(const ThreadManager&) = delete;
 
-    void addTask(std::function<void()> task); 
-    size_t getTaskCount() const;
+    // Submit a task to be executed by the thread pool
+    void submitTask(std::function<void()> task);
 
-    void setNumThreads(size_t numThreads);
-    size_t getNumThreads() const;
+    // Wait for all submitted tasks to complete
+    void waitForCompletion();
 
-    size_t getActiveThreadCount() const;
-
-    bool isRunning() const;
+    // Get the number of worker threads
+    size_t getThreadCount() const { return threads.size(); }
 
 private:
-    void workerThread(size_t threadId); 
-
-    void processNextTask(); 
-
     std::vector<std::thread> threads;
     std::queue<std::function<void()>> taskQueue;
-    mutable std::mutex taskMutex;
-    mutable std::mutex completionMutex; 
-    std::condition_variable taskCondition;
-    std::atomic<bool> running{false};
-    std::atomic<size_t> activeThreads{0};
-    size_t numThreads;
-
-    std::vector<std::atomic<size_t>> threadLoads; 
+    std::mutex queueMutex;
+    std::condition_variable condition;
+    std::atomic<bool> stop;
+    
+    void workerThread();
 };

@@ -1,57 +1,40 @@
 #pragma once
 
+#include <vector>
+#include <memory>
 #include "Particle.h"
 #include "ContainmentField.h"
 #include "ThreadManager.h"
-#include <vector>
-#include <memory>
-#include <thread>
-#include <mutex>
-#include <condition_variable>
-#include <atomic>
-
-struct Config;
 
 class Simulation {
 public:
-    Simulation(const Config& config);
+    Simulation(double fieldSize, double fieldStrength, size_t numParticles);
     ~Simulation();
 
-    void initializeParticles(const Config& config);
-    void setContainmentField(std::unique_ptr<ContainmentField> field);
+    // Initialize the simulation
+    void initialize();
 
-    void start();
-    void stop();
-    void step();
+    // Run the simulation for a given number of steps
+    void run(size_t numSteps, double dt);
 
-    void addParticle(std::unique_ptr<Particle> particle);
-    void removeEscapedParticles(); 
-    size_t getParticleCount() const;
-    const std::vector<std::unique_ptr<Particle>>& getParticles() const; 
+    // Get simulation state
+    const std::vector<Particle>& getParticles() const { return particles; }
+    const ContainmentField& getField() const { return *field; }
 
-    double getTotalEnergy() const; 
-
-    void setNumThreads(size_t numThreads);
-    size_t getNumThreads() const;
-    const ThreadManager& getThreadManager() const { return *threadManager; }
-
-    void updatePositions(double timeStep); 
-    void applyForces(double timeStep);
-    void handleCollisions();
+    // Visualization
+    void render() const;
 
 private:
-    void workerThread(size_t threadId);  
-
-    std::vector<std::unique_ptr<Particle>> particles;
-    std::unique_ptr<ContainmentField> containmentField;
-    std::unique_ptr<ThreadManager> threadManager;
-    double fieldSize; 
-    const double timeStep; 
-
-    std::vector<std::thread> workerThreads;
-    std::mutex simulationMutex;
-    std::mutex particleMutex;  
-    std::condition_variable cv;
-    std::atomic<bool> running{false};
-    size_t numThreads;
+    std::vector<Particle> particles;
+    std::unique_ptr<ContainmentField> field;
+    ThreadManager threadManager;
+    
+    // Simulation parameters
+    double timeStep;
+    size_t numParticles;
+    
+    // Helper methods
+    void updateParticles(double dt);
+    void handleCollisions();
+    void initializeParticles();
 }; 
